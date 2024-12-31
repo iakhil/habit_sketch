@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HabitSketch</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f9f9f9;
+    }
+    header {
+      background-color: #6200ea;
+      color: white;
+      padding: 1rem;
+      width: 100%;
+      text-align: center;
+      font-size: 1.5rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    #canvas-container {
+      margin: 1rem 0;
+      border: 2px solid #ccc;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    canvas {
+      display: block;
+    }
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin: 1rem;
+    }
+    #controls button, #controls input {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #timeline {
+      width: 80%;
+      margin: 1rem auto;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .day {
+      width: 50px;
+      height: 50px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: white;
+    }
+  </style>
+</head>
+<body>
+  <header>HabitSketch</header>
+  <div id="canvas-container">
+    <canvas id="habitCanvas" width="400" height="400"></canvas>
+  </div>
+  <div id="controls">
+    <input type="color" id="colorPicker" value="#000000">
+    <button id="clearCanvas">Clear</button>
+    <button id="saveCanvas">Save</button>
+  </div>
+  <div id="timeline"></div>
+  <script>
+    const canvas = document.getElementById('habitCanvas');
+    const ctx = canvas.getContext('2d');
+    const colorPicker = document.getElementById('colorPicker');
+    const clearCanvas = document.getElementById('clearCanvas');
+    const saveCanvas = document.getElementById('saveCanvas');
+    const timeline = document.getElementById('timeline');
+
+    let drawing = false;
+    let currentColor = colorPicker.value;
+
+    // Canvas Event Listeners
+    canvas.addEventListener('mousedown', () => (drawing = true));
+    canvas.addEventListener('mouseup', () => (drawing = false));
+    canvas.addEventListener('mousemove', draw);
+
+    colorPicker.addEventListener('input', (e) => {
+      currentColor = e.target.value;
+    });
+
+    function draw(e) {
+      if (!drawing) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.fillStyle = currentColor;
+      ctx.beginPath();
+      ctx.arc(e.clientX - rect.left, e.clientY - rect.top, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    clearCanvas.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    saveCanvas.addEventListener('click', () => {
+      const dataUrl = canvas.toDataURL();
+      const day = document.createElement('div');
+      day.className = 'day';
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.style.width = '100%';
+      img.style.height = '100%';
+      day.appendChild(img);
+      timeline.appendChild(day);
+    });
+  </script>
+</body>
+</html>
