@@ -31,7 +31,7 @@
       margin: 1rem;
       align-items: center;
     }
-    #controls input, #controls button {
+    #controls select, #controls button {
       padding: 0.5rem;
       font-size: 1rem;
       border: 1px solid #333;
@@ -88,63 +88,94 @@
 <body>
   <header>HabitSketch</header>
   <div id="controls">
-    <button id="addHabit">Add Habit</button>
+    <select id="habitSelector">
+      <option value="">Select a Habit</option>
+    </select>
+    <button id="addHabit">Add New Habit</button>
   </div>
   <div id="grid"></div>
   <div id="habitInput">
-    <label for="habit">Enter Habit:</label>
-    <input type="text" id="habit" placeholder="E.g., Drink Water">
-    <button id="saveHabit">Save</button>
+    <label for="newHabit">Enter New Habit:</label>
+    <input type="text" id="newHabit" placeholder="E.g., Drink Water">
+    <button id="saveNewHabit">Save</button>
   </div>
   <script>
     const grid = document.getElementById('grid');
+    const habitSelector = document.getElementById('habitSelector');
     const addHabitBtn = document.getElementById('addHabit');
     const habitInputDiv = document.getElementById('habitInput');
-    const habitInput = document.getElementById('habit');
-    const saveHabitBtn = document.getElementById('saveHabit');
+    const newHabitInput = document.getElementById('newHabit');
+    const saveNewHabitBtn = document.getElementById('saveNewHabit');
 
-    let selectedCell = null;
+    let habits = {}; // Stores habits and their grid data
+    let currentHabit = null;
 
-    // Create a grid for a full year (52 weeks x 7 days)
-    for (let i = 0; i < 364; i++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.intensity = 0; // Intensity for tracking progress
-      cell.dataset.habit = ''; // Placeholder for habit
-      cell.addEventListener('click', () => openHabitInput(cell));
-      grid.appendChild(cell);
-    }
-
-    function openHabitInput(cell) {
-      selectedCell = cell;
-      habitInput.value = cell.dataset.habit || '';
-      habitInputDiv.style.display = 'flex';
-    }
-
-    saveHabitBtn.addEventListener('click', () => {
-      if (!selectedCell) return;
-
-      // Update cell with habit and increment intensity
-      const habit = habitInput.value.trim();
-      selectedCell.dataset.habit = habit;
-
-      const intensity = parseInt(selectedCell.dataset.intensity);
-      if (intensity < 4) {
-        const newIntensity = intensity + 1;
-        selectedCell.dataset.intensity = newIntensity;
-        selectedCell.className = `cell filled-${newIntensity}`;
+    function createGrid() {
+      grid.innerHTML = '';
+      for (let i = 0; i < 364; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.intensity = 0; // Intensity for tracking progress
+        cell.addEventListener('click', () => toggleCell(cell));
+        grid.appendChild(cell);
       }
+    }
+
+    function toggleCell(cell) {
+      if (!currentHabit) return;
+
+      const intensity = parseInt(cell.dataset.intensity);
+      const newIntensity = (intensity + 1) % 5; // Cycle through 0-4
+      cell.dataset.intensity = newIntensity;
+      cell.className = newIntensity ? `cell filled-${newIntensity}` : 'cell';
+      
+      // Save to habits object
+      const index = Array.from(grid.children).indexOf(cell);
+      habits[currentHabit].gridData[index] = newIntensity;
+    }
+
+    function populateGrid() {
+      if (!currentHabit) return;
+
+      const habitData = habits[currentHabit].gridData;
+      const cells = Array.from(grid.children);
+      cells.forEach((cell, index) => {
+        const intensity = habitData[index] || 0;
+        cell.dataset.intensity = intensity;
+        cell.className = intensity ? `cell filled-${intensity}` : 'cell';
+      });
+    }
+
+    function addNewHabit() {
+      const habitName = newHabitInput.value.trim();
+      if (!habitName) return alert('Please enter a habit name.');
+
+      habits[habitName] = { gridData: Array(364).fill(0) };
+      const option = document.createElement('option');
+      option.value = habitName;
+      option.textContent = habitName;
+      habitSelector.appendChild(option);
 
       habitInputDiv.style.display = 'none';
-      selectedCell = null;
+      newHabitInput.value = '';
+      habitSelector.value = habitName;
+      currentHabit = habitName;
+      populateGrid();
+    }
+
+    habitSelector.addEventListener('change', () => {
+      currentHabit = habitSelector.value;
+      if (currentHabit) populateGrid();
     });
 
     addHabitBtn.addEventListener('click', () => {
-      const firstEmptyCell = Array.from(document.querySelectorAll('.cell')).find(
-        (cell) => !cell.dataset.habit
-      );
-      if (firstEmptyCell) openHabitInput(firstEmptyCell);
+      habitInputDiv.style.display = 'flex';
     });
+
+    saveNewHabitBtn.addEventListener('click', addNewHabit);
+
+    // Initialize
+    createGrid();
   </script>
 </body>
 </html>
