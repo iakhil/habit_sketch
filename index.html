@@ -44,22 +44,32 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    #timeline {
-      width: 80%;
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(52, 10px); /* 52 weeks for a year */
+      grid-gap: 2px;
+      width: auto;
       margin: 1rem auto;
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-    }
-    .day {
-      width: 50px;
-      height: 50px;
-      border: 2px solid #ccc;
-      border-radius: 5px;
-      display: flex;
       justify-content: center;
-      align-items: center;
-      background-color: white;
+    }
+    .cell {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background-color: #ebedf0; /* Default GitHub grid color */
+      transition: background-color 0.3s;
+    }
+    .cell.filled-1 {
+      background-color: #9be9a8; /* Light green */
+    }
+    .cell.filled-2 {
+      background-color: #40c463; /* Medium green */
+    }
+    .cell.filled-3 {
+      background-color: #30a14e; /* Darker green */
+    }
+    .cell.filled-4 {
+      background-color: #216e39; /* Darkest green */
     }
   </style>
 </head>
@@ -69,21 +79,29 @@
     <canvas id="habitCanvas" width="400" height="400"></canvas>
   </div>
   <div id="controls">
-    <input type="color" id="colorPicker" value="#000000">x`
+    <input type="color" id="colorPicker" value="#000000">
     <button id="clearCanvas">Clear</button>
     <button id="saveCanvas">Save</button>
   </div>
-  <div id="timeline"></div>
+  <div id="grid"></div>
   <script>
     const canvas = document.getElementById('habitCanvas');
     const ctx = canvas.getContext('2d');
     const colorPicker = document.getElementById('colorPicker');
     const clearCanvas = document.getElementById('clearCanvas');
     const saveCanvas = document.getElementById('saveCanvas');
-    const timeline = document.getElementById('timeline');
+    const grid = document.getElementById('grid');
 
     let drawing = false;
     let currentColor = colorPicker.value;
+
+    // Create a grid for a full year (52 weeks x 7 days)
+    for (let i = 0; i < 364; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.intensity = 0; // Intensity for tracking progress
+      grid.appendChild(cell);
+    }
 
     // Canvas Event Listeners
     canvas.addEventListener('mousedown', () => (drawing = true));
@@ -108,15 +126,17 @@
     });
 
     saveCanvas.addEventListener('click', () => {
-      const dataUrl = canvas.toDataURL();
-      const day = document.createElement('div');
-      day.className = 'day';
-      const img = document.createElement('img');
-      img.src = dataUrl;
-      img.style.width = '100%';
-      img.style.height = '100%';
-      day.appendChild(img);
-      timeline.appendChild(day);
+      // Increment intensity for the next cell in the grid
+      const cells = document.querySelectorAll('.cell');
+      for (let cell of cells) {
+        const intensity = parseInt(cell.dataset.intensity);
+        if (intensity < 4) {
+          const newIntensity = intensity + 1;
+          cell.dataset.intensity = newIntensity;
+          cell.className = `cell filled-${newIntensity}`;
+          break;
+        }
+      }
     });
   </script>
 </body>
