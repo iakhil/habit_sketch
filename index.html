@@ -123,10 +123,13 @@
     const newHabitInput = document.getElementById('newHabit');
     const saveNewHabitBtn = document.getElementById('saveNewHabit');
 
-    let habits = {}; // Stores habits and their grid data
+    const startDate = new Date('2025-01-01'); // Start from January 1, 2025
+    let habits = JSON.parse(localStorage.getItem('habits')) || {}; // Load habits from localStorage
     let currentHabit = null;
 
-    const startDate = new Date('2025-01-01'); // Start from January 1, 2025
+    function saveHabitsToLocalStorage() {
+      localStorage.setItem('habits', JSON.stringify(habits));
+    }
 
     function createGrid() {
       grid.innerHTML = '';
@@ -159,10 +162,12 @@
       const newIntensity = (intensity + 1) % 5; // Cycle through 0-4
       cell.dataset.intensity = newIntensity;
       cell.className = newIntensity ? `cell filled-${newIntensity}` : 'cell';
-      
+
       // Save to habits object
       const index = parseInt(cell.dataset.index);
       habits[currentHabit].gridData[index] = newIntensity;
+
+      saveHabitsToLocalStorage(); // Save updates to localStorage
     }
 
     function populateGrid() {
@@ -181,17 +186,33 @@
       const habitName = newHabitInput.value.trim();
       if (!habitName) return alert('Please enter a habit name.');
 
+      if (habits[habitName]) {
+        alert('Habit already exists.');
+        return;
+      }
+
       habits[habitName] = { gridData: Array(364).fill(0) };
       const option = document.createElement('option');
       option.value = habitName;
       option.textContent = habitName;
       habitSelector.appendChild(option);
 
+      saveHabitsToLocalStorage(); // Save new habit to localStorage
+
       habitInputDiv.style.display = 'none';
       newHabitInput.value = '';
       habitSelector.value = habitName;
       currentHabit = habitName;
       populateGrid();
+    }
+
+    function loadHabits() {
+      Object.keys(habits).forEach((habitName) => {
+        const option = document.createElement('option');
+        option.value = habitName;
+        option.textContent = habitName;
+        habitSelector.appendChild(option);
+      });
     }
 
     habitSelector.addEventListener('change', () => {
@@ -207,6 +228,12 @@
 
     // Initialize
     createGrid();
+    loadHabits();
+    if (habitSelector.options.length > 1) {
+      habitSelector.value = habitSelector.options[1].value;
+      currentHabit = habitSelector.value;
+      populateGrid();
+    }
   </script>
 </body>
 </html>
