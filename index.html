@@ -46,6 +46,7 @@
       grid-gap: 2px;
       margin: 1rem auto;
       justify-content: center;
+      position: relative;
     }
     .cell {
       width: 10px;
@@ -54,6 +55,7 @@
       background-color: #2d2d2d; /* Default dark gray */
       transition: background-color 0.3s;
       cursor: pointer;
+      position: relative;
     }
     .cell.filled-1 {
       background-color: #6a9955; /* Light green */
@@ -66,6 +68,20 @@
     }
     .cell.filled-4 {
       background-color: #1b5e20; /* Darkest green */
+    }
+    .tooltip {
+      position: absolute;
+      background-color: #333;
+      color: white;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      visibility: hidden;
+      transform: translate(-50%, -120%);
+      white-space: nowrap;
+    }
+    .cell:hover .tooltip {
+      visibility: visible;
     }
     #habitInput {
       display: none;
@@ -110,12 +126,27 @@
     let habits = {}; // Stores habits and their grid data
     let currentHabit = null;
 
+    const startDate = new Date('2025-01-01'); // Start from January 1, 2025
+
     function createGrid() {
       grid.innerHTML = '';
       for (let i = 0; i < 364; i++) {
         const cell = document.createElement('div');
         cell.className = 'cell';
         cell.dataset.intensity = 0; // Intensity for tracking progress
+        cell.dataset.index = i;
+
+        // Calculate the date for this cell
+        const cellDate = new Date(startDate);
+        cellDate.setDate(startDate.getDate() + i);
+        const formattedDate = cellDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
+        // Tooltip for the date
+        const tooltip = document.createElement('span');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = formattedDate;
+        cell.appendChild(tooltip);
+
         cell.addEventListener('click', () => toggleCell(cell));
         grid.appendChild(cell);
       }
@@ -130,7 +161,7 @@
       cell.className = newIntensity ? `cell filled-${newIntensity}` : 'cell';
       
       // Save to habits object
-      const index = Array.from(grid.children).indexOf(cell);
+      const index = parseInt(cell.dataset.index);
       habits[currentHabit].gridData[index] = newIntensity;
     }
 
