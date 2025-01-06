@@ -12,43 +12,38 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      background-color: #f9f9f9;
+      background-color: #121212;
+      color: #e0e0e0;
     }
     header {
-      background-color: #6200ea;
-      color: white;
+      background-color: #1f1f1f;
+      color: #ffffff;
       padding: 1rem;
       width: 100%;
       text-align: center;
       font-size: 1.5rem;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
-    #canvas-container {
-      margin: 1rem 0;
-      border: 2px solid #ccc;
-      background: white;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    canvas {
-      display: block;
-    }
     #controls {
       display: flex;
+      flex-direction: column;
       gap: 10px;
       margin: 1rem;
+      align-items: center;
     }
-    #controls button, #controls input {
+    #controls input, #controls button {
       padding: 0.5rem;
       font-size: 1rem;
-      border: 1px solid #ccc;
+      border: 1px solid #333;
       border-radius: 5px;
+      background-color: #1f1f1f;
+      color: #ffffff;
       cursor: pointer;
     }
     #grid {
       display: grid;
       grid-template-columns: repeat(52, 10px); /* 52 weeks for a year */
       grid-gap: 2px;
-      width: auto;
       margin: 1rem auto;
       justify-content: center;
     }
@@ -56,87 +51,99 @@
       width: 10px;
       height: 10px;
       border-radius: 2px;
-      background-color: #ebedf0; /* Default GitHub grid color */
+      background-color: #2d2d2d; /* Default dark gray */
       transition: background-color 0.3s;
+      cursor: pointer;
     }
     .cell.filled-1 {
-      background-color: #9be9a8; /* Light green */
+      background-color: #6a9955; /* Light green */
     }
     .cell.filled-2 {
-      background-color: #40c463; /* Medium green */
+      background-color: #4caf50; /* Medium green */
     }
     .cell.filled-3 {
-      background-color: #30a14e; /* Darker green */
+      background-color: #388e3c; /* Darker green */
     }
     .cell.filled-4 {
-      background-color: #216e39; /* Darkest green */
+      background-color: #1b5e20; /* Darkest green */
+    }
+    #habitInput {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      background-color: #1f1f1f;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+    #habitInput label {
+      color: #e0e0e0;
+    }
+    #habitInput button {
+      background-color: #4caf50;
+      color: white;
     }
   </style>
 </head>
 <body>
   <header>HabitSketch</header>
-  <div id="canvas-container">
-    <canvas id="habitCanvas" width="400" height="400"></canvas>
-  </div>
   <div id="controls">
-    <input type="color" id="colorPicker" value="#000000">
-    <button id="clearCanvas">Clear</button>
-    <button id="saveCanvas">Save</button>
+    <button id="addHabit">Add Habit</button>
   </div>
   <div id="grid"></div>
+  <div id="habitInput">
+    <label for="habit">Enter Habit:</label>
+    <input type="text" id="habit" placeholder="E.g., Drink Water">
+    <button id="saveHabit">Save</button>
+  </div>
   <script>
-    const canvas = document.getElementById('habitCanvas');
-    const ctx = canvas.getContext('2d');
-    const colorPicker = document.getElementById('colorPicker');
-    const clearCanvas = document.getElementById('clearCanvas');
-    const saveCanvas = document.getElementById('saveCanvas');
     const grid = document.getElementById('grid');
+    const addHabitBtn = document.getElementById('addHabit');
+    const habitInputDiv = document.getElementById('habitInput');
+    const habitInput = document.getElementById('habit');
+    const saveHabitBtn = document.getElementById('saveHabit');
 
-    let drawing = false;
-    let currentColor = colorPicker.value;
+    let selectedCell = null;
 
     // Create a grid for a full year (52 weeks x 7 days)
     for (let i = 0; i < 364; i++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.intensity = 0; // Intensity for tracking progress
+      cell.dataset.habit = ''; // Placeholder for habit
+      cell.addEventListener('click', () => openHabitInput(cell));
       grid.appendChild(cell);
     }
 
-    // Canvas Event Listeners
-    canvas.addEventListener('mousedown', () => (drawing = true));
-    canvas.addEventListener('mouseup', () => (drawing = false));
-    canvas.addEventListener('mousemove', draw);
-
-    colorPicker.addEventListener('input', (e) => {
-      currentColor = e.target.value;
-    });
-
-    function draw(e) {
-      if (!drawing) return;
-      const rect = canvas.getBoundingClientRect();
-      ctx.fillStyle = currentColor;
-      ctx.beginPath();
-      ctx.arc(e.clientX - rect.left, e.clientY - rect.top, 5, 0, Math.PI * 2);
-      ctx.fill();
+    function openHabitInput(cell) {
+      selectedCell = cell;
+      habitInput.value = cell.dataset.habit || '';
+      habitInputDiv.style.display = 'flex';
     }
 
-    clearCanvas.addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    saveHabitBtn.addEventListener('click', () => {
+      if (!selectedCell) return;
+
+      // Update cell with habit and increment intensity
+      const habit = habitInput.value.trim();
+      selectedCell.dataset.habit = habit;
+
+      const intensity = parseInt(selectedCell.dataset.intensity);
+      if (intensity < 4) {
+        const newIntensity = intensity + 1;
+        selectedCell.dataset.intensity = newIntensity;
+        selectedCell.className = `cell filled-${newIntensity}`;
+      }
+
+      habitInputDiv.style.display = 'none';
+      selectedCell = null;
     });
 
-    saveCanvas.addEventListener('click', () => {
-      // Increment intensity for the next cell in the grid
-      const cells = document.querySelectorAll('.cell');
-      for (let cell of cells) {
-        const intensity = parseInt(cell.dataset.intensity);
-        if (intensity < 4) {
-          const newIntensity = intensity + 1;
-          cell.dataset.intensity = newIntensity;
-          cell.className = `cell filled-${newIntensity}`;
-          break;
-        }
-      }
+    addHabitBtn.addEventListener('click', () => {
+      const firstEmptyCell = Array.from(document.querySelectorAll('.cell')).find(
+        (cell) => !cell.dataset.habit
+      );
+      if (firstEmptyCell) openHabitInput(firstEmptyCell);
     });
   </script>
 </body>
