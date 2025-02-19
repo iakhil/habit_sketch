@@ -76,14 +76,44 @@
       width: auto;
       height: 0;
       padding-bottom: 100%;
-      border-radius: 8px;
+      border-radius: 4px;
       background-color: #2d2d2d;
       transition: background-color 0.3s;
       cursor: pointer;
       position: relative;
+      /* Add calendar page effect */
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+      border: 1px solid #3a3a3a;
+    }
+    .cell::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 15px 15px 0;
+      border-color: transparent #1a1a1a transparent transparent;
     }
     .cell.filled-1 {
-      background-color: #6a9955; /* Light green */
+      background-color: #6a9955;
+      border-color: #588149;
+    }
+    .cell.filled-1::before {
+      border-color: transparent #4d7040 transparent transparent;
+    }
+    /* Day number styling */
+    .day-number {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.2rem;
+      color: #fff;
+      z-index: 1;
+      font-family: 'Arial', sans-serif;
+      font-weight: bold;
     }
     .cell.filled-2 {
       background-color: #4caf50; /* Medium green */
@@ -159,6 +189,15 @@
     .selector-group {
       display: flex;
       gap: 10px;
+    }
+    .cell.future {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background-color: #252525;
+      border-color: #2a2a2a;
+    }
+    .cell.future::before {
+      border-color: transparent #1a1a1a transparent transparent;
     }
   </style>
 </head>
@@ -283,12 +322,7 @@
           
           // Add day number inside cell
           const dayNumber = document.createElement('span');
-          dayNumber.style.position = 'absolute';
-          dayNumber.style.top = '50%';
-          dayNumber.style.left = '50%';
-          dayNumber.style.transform = 'translate(-50%, -50%)';
-          dayNumber.style.fontSize = '1.2rem';
-          dayNumber.style.color = '#fff';
+          dayNumber.className = 'day-number';
           dayNumber.textContent = day;
           cell.appendChild(dayNumber);
         } else {
