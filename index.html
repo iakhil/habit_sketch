@@ -14,8 +14,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      background-color: #0a0a0a;
-      color: #e0e0e0;
+      background-color: #121212;
+      color: #ffffff;
       height: 100vh;
       box-sizing: border-box;
       overflow: hidden;
@@ -23,11 +23,11 @@
     h1 {
       color: #ffffff;
       font-size: 2.5rem;
-      font-weight: 200;
+      font-weight: 300;
       letter-spacing: 4px;
       margin: 0 0 2rem 0;
       text-transform: uppercase;
-      opacity: 0.9;
+      opacity: 1;
     }
     #controls {
       display: flex;
@@ -107,12 +107,12 @@
       height: 0;
       padding-bottom: 100%;
       border-radius: 12px;
-      background: linear-gradient(145deg, #1a1a1a, #222);
+      background: linear-gradient(145deg, #222, #2a2a2a);
       transition: all 0.3s ease;
       cursor: pointer;
       position: relative;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .cell::before {
       content: '';
@@ -131,8 +131,9 @@
       box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
     }
     .cell.filled-1 {
-      background: linear-gradient(145deg, #5a8f48, #6a9955);
-      border-color: rgba(255, 255, 255, 0.1);
+      background: linear-gradient(145deg, #65a350, #7aba65);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 12px rgba(106, 153, 85, 0.3);
     }
     .cell.filled-1::before {
       border-color: transparent rgba(255, 255, 255, 0.1) transparent transparent;
@@ -142,10 +143,10 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 1.1rem;
-      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 1);
       z-index: 1;
-      font-weight: 300;
+      font-weight: 400;
     }
     .cell.filled-2 {
       background-color: #4caf50; /* Medium green */
@@ -221,14 +222,54 @@
     .cell.empty {
       visibility: hidden;
     }
-    .cell.future {
-      opacity: 0.5;
+    /* Improved styling for past dates */
+    .cell.past {
+      opacity: 0.9;
       cursor: not-allowed;
-      background-color: #252525;
-      border-color: #2a2a2a;
+      background: linear-gradient(145deg, #1a1a1a, #222);
+      border-color: #222;
+    }
+    .cell.past::before {
+      border-color: transparent #111 transparent transparent;
+    }
+    /* Stronger visual indicator for today's date */
+    .cell.today {
+      border: 2px solid #5ccc60;
+      box-shadow: 0 0 20px rgba(92, 204, 96, 0.6);
+      position: relative;
+      z-index: 2;
+    }
+    .cell.today .day-number {
+      font-weight: bold;
+      color: white;
+    }
+    /* Add a small indicator dot for today */
+    .cell.today::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 10px;
+      height: 10px;
+      background-color: #5ccc60;
+      border-radius: 50%;
+    }
+    /* Style for future dates */
+    .cell.future {
+      opacity: 0.7;
+      cursor: not-allowed;
+      background: linear-gradient(145deg, #222, #272727);
+      border-color: #1f1f1f;
     }
     .cell.future::before {
-      border-color: transparent #1a1a1a transparent transparent;
+      border-color: transparent #151515 transparent transparent;
+    }
+    /* Improve day number contrast for different states */
+    .cell.past .day-number {
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .cell.future .day-number {
+      color: rgba(255, 255, 255, 0.4);
     }
     /* Style for delete options in dropdown */
     #habitSelector option.delete-option {
@@ -341,6 +382,12 @@
       const numRows = Math.ceil(31 / 5);
       const totalCells = numRows * 5;
       
+      // Get today's date for comparison
+      const today = new Date();
+      const todayYear = today.getFullYear();
+      const todayMonth = today.getMonth();
+      const todayDay = today.getDate();
+      
       // Create cells for each day
       for (let i = 0; i < totalCells; i++) {
         const day = i + 1;
@@ -355,16 +402,28 @@
           
           // Calculate the date for this cell
           const cellDate = new Date(2025, currentMonth, day);
-          const today = new Date();
           
-          // Check if the date is in the future
+          // Check if the date is in the future or past
           const isFutureDate = cellDate > today;
           
-          if (isFutureDate) {
-            cell.classList.add('future');
+          // Check if the date is today (only editable date)
+          const isToday = (
+            cellDate.getFullYear() === todayYear && 
+            cellDate.getMonth() === todayMonth && 
+            cellDate.getDate() === todayDay
+          );
+          
+          if (!isToday) {
+            // If it's not today, make it non-editable
+            cell.classList.add(isFutureDate ? 'future' : 'past');
             cell.style.cursor = 'not-allowed';
-            cell.style.opacity = '0.5';
+            
+            // Style past dates differently from future dates
+            if (!isFutureDate) {
+              cell.style.opacity = '0.7';
+            }
           } else {
+            cell.classList.add('today');
             cell.addEventListener('click', () => toggleCell(cell));
           }
           
@@ -372,9 +431,13 @@
           const tooltip = document.createElement('span');
           tooltip.className = 'tooltip';
           tooltip.textContent = `${months[currentMonth]} ${day}, 2025`;
+          
           if (isFutureDate) {
             tooltip.textContent += ' (Future date)';
+          } else if (!isToday) {
+            tooltip.textContent += ' (Past date)';
           }
+          
           cell.appendChild(tooltip);
           
           // Add day number inside cell
@@ -399,12 +462,16 @@
 
     function toggleCell(cell) {
       if (!currentHabit) return;
-      if (cell.classList.contains('future')) return;
+      if (cell.classList.contains('future') || cell.classList.contains('past')) return;
 
       const intensity = parseInt(cell.dataset.intensity);
       const newIntensity = intensity === 1 ? 0 : 1;
       cell.dataset.intensity = newIntensity;
       cell.className = newIntensity ? `cell filled-${newIntensity}` : 'cell';
+      
+      if (cell.classList.contains('today')) {
+        cell.classList.add('today');
+      }
 
       // Save to habits object
       const index = parseInt(cell.dataset.index);
