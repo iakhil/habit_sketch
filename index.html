@@ -230,6 +230,30 @@
     .cell.future::before {
       border-color: transparent #1a1a1a transparent transparent;
     }
+    /* Style for delete options in dropdown */
+    #habitSelector option.delete-option {
+      color: #ff4444;
+    }
+    #habitSelector option:disabled {
+      color: #555;
+    }
+    /* Add styles for the delete button */
+    #deleteHabit {
+      background-color: #ff4444;
+      color: white;
+      padding: 0.8rem 1.2rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      min-width: auto;
+      display: none;
+    }
+    #deleteHabit:hover {
+      background-color: #ff0000;
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body>
@@ -253,6 +277,7 @@
       <select id="habitSelector">
         <option value="">Select a Habit</option>
       </select>
+      <button id="deleteHabit">Delete Habbit</button>
     </div>
     <button id="addHabit">Add New Habit</button>
   </div>
@@ -270,6 +295,7 @@
     const habitInputDiv = document.getElementById('habitInput');
     const newHabitInput = document.getElementById('newHabit');
     const saveNewHabitBtn = document.getElementById('saveNewHabit');
+    const deleteHabitBtn = document.getElementById('deleteHabit');
 
     const startDate = new Date('2025-01-01');
     let habits = JSON.parse(localStorage.getItem('habits')) || {};
@@ -430,7 +456,35 @@
       populateGrid();
     }
 
+    function deleteCurrentHabit() {
+      if (!currentHabit) return;
+      
+      if (confirm(`Are you sure you want to delete "${currentHabit}"?`)) {
+        delete habits[currentHabit];
+        saveHabitsToLocalStorage();
+        
+        // Reload habits dropdown
+        loadHabits();
+        
+        // Reset current habit
+        habitSelector.value = "";
+        currentHabit = null;
+        
+        // Update grid
+        createGrid();
+        
+        // Hide delete button
+        deleteHabitBtn.style.display = 'none';
+      }
+    }
+
     function loadHabits() {
+      // Clear existing options except the first one
+      while (habitSelector.options.length > 1) {
+        habitSelector.options.remove(1);
+      }
+      
+      // Add regular habit options
       Object.keys(habits).forEach((habitName) => {
         const option = document.createElement('option');
         option.value = habitName;
@@ -446,6 +500,10 @@
 
     habitSelector.addEventListener('change', () => {
       currentHabit = habitSelector.value;
+      
+      // Show/hide delete button based on selection
+      deleteHabitBtn.style.display = currentHabit ? 'block' : 'none';
+      
       if (currentHabit) populateGrid();
     });
 
@@ -454,6 +512,9 @@
     });
 
     saveNewHabitBtn.addEventListener('click', addNewHabit);
+
+    // Add event listener for delete button
+    deleteHabitBtn.addEventListener('click', deleteCurrentHabit);
 
     // Initialize with current month
     createGrid();
