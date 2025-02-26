@@ -396,31 +396,12 @@
     }
     /* Style for yesterday's date */
     .cell.yesterday {
-      border: 2px solid #f0ad4e; /* Orange border for yesterday */
-      box-shadow: 0 0 15px rgba(240, 173, 78, 0.4); /* Orange glow */
-      position: relative;
-      z-index: 2;
-    }
-    .cell.yesterday .day-number {
-      font-weight: bold;
-      color: #fff;
-    }
-    /* Add an indicator for yesterday */
-    .cell.yesterday::after {
-      content: '';
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      width: 10px;
-      height: 10px;
-      background-color: #f0ad4e; /* Orange indicator */
-      border-radius: 50%;
+      display: none; /* This will be removed */
     }
   </style>
 </head>
 <body>
-  <h1>HABITSKETCH</h1>
-  
+  <h1>HabitSketch</h1>
   <div id="controls">
     <div class="selector-group">
       <select id="monthSelector">
@@ -440,19 +421,16 @@
       <select id="habitSelector">
         <option value="">Select a Habit</option>
       </select>
-      <button id="deleteHabit">Delete Habit</button>
+      <button id="deleteHabit">Delete Habbit</button>
     </div>
     <button id="addHabit">Add New Habit</button>
   </div>
-  
   <div id="grid"></div>
-  
   <div id="habitInput">
-    <label for="newHabit">New Habit Name</label>
-    <input type="text" id="newHabit" placeholder="Enter habit name...">
+    <label for="newHabit">Enter New Habit:</label>
+    <input type="text" id="newHabit" placeholder="E.g., Exercise">
     <button id="saveNewHabit">Save</button>
   </div>
-  
   <div id="noteInput">
     <h3 style="margin-top: 0;">Add Note</h3>
     <textarea id="noteText" maxlength="100" placeholder="Add a note for this day (max 100 characters)..."></textarea>
@@ -462,7 +440,6 @@
       <button id="saveNote">Save Note</button>
     </div>
   </div>
-
   <script>
     const grid = document.getElementById('grid');
     const habitSelector = document.getElementById('habitSelector');
@@ -529,13 +506,6 @@
       const todayMonth = today.getMonth();
       const todayDay = today.getDate();
       
-      // Calculate yesterday's date
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      const yesterdayYear = yesterday.getFullYear();
-      const yesterdayMonth = yesterday.getMonth();
-      const yesterdayDay = yesterday.getDate();
-      
       // Create cells for each day
       for (let i = 0; i < totalCells; i++) {
         const day = i + 1;
@@ -554,28 +524,21 @@
           // Check if the date is in the future or past
           const isFutureDate = cellDate > today;
           
-          // Check if the date is today or yesterday (both editable)
+          // Check if the date is today (only editable date)
           const isToday = (
             cellDate.getFullYear() === todayYear && 
             cellDate.getMonth() === todayMonth && 
             cellDate.getDate() === todayDay
           );
           
-          const isYesterday = (
-            cellDate.getFullYear() === yesterdayYear && 
-            cellDate.getMonth() === yesterdayMonth && 
-            cellDate.getDate() === yesterdayDay
-          );
-          
-          // Allow editing for both today and yesterday
-          if (isToday || isYesterday) {
-            cell.classList.add(isToday ? 'today' : 'yesterday');
+          if (isToday) {
+            cell.classList.add('today');
             cell.addEventListener('click', () => toggleCell(cell));
             
             // Setup event listeners for notes
             setupCellEventListeners(cell);
           } else {
-            // If it's not today or yesterday, make it non-editable
+            // If it's not today, make it non-editable
             cell.classList.add(isFutureDate ? 'future' : 'past');
             cell.style.cursor = 'not-allowed';
             
@@ -585,7 +548,7 @@
             }
           }
           
-          // Update tooltip to include "Yesterday" label
+          // Add tooltip with date info
           const tooltip = document.createElement('span');
           tooltip.className = 'tooltip';
           tooltip.textContent = `${months[currentMonth]} ${day}, 2025`;
@@ -594,8 +557,6 @@
             tooltip.textContent += ' (Future date)';
           } else if (isToday) {
             tooltip.textContent += ' (Today)';
-          } else if (isYesterday) {
-            tooltip.textContent += ' (Yesterday)';
           } else {
             tooltip.textContent += ' (Past date)';
           }
@@ -624,25 +585,15 @@
 
     function toggleCell(cell) {
       if (!currentHabit) return;
-      if (cell.classList.contains('future') || (cell.classList.contains('past') && 
-          !cell.classList.contains('yesterday'))) return;
+      if (!cell.classList.contains('today')) return;
 
-      // Toggle cell for today or yesterday
+      // Toggle cell for today
       const intensity = parseInt(cell.dataset.intensity);
       const newIntensity = intensity === 1 ? 0 : 1;
       cell.dataset.intensity = newIntensity;
       
-      // Keep the appropriate class
-      const wasToday = cell.classList.contains('today');
-      const wasYesterday = cell.classList.contains('yesterday');
-      
-      cell.className = newIntensity ? `cell filled-${newIntensity}` : 'cell';
-      
-      if (wasToday) {
-        cell.classList.add('today');
-      } else if (wasYesterday) {
-        cell.classList.add('yesterday');
-      }
+      // Keep the 'today' class when toggling
+      cell.className = newIntensity ? `cell filled-${newIntensity} today` : 'cell today';
 
       // Save to habits object
       const index = parseInt(cell.dataset.index);
@@ -657,6 +608,16 @@
       const habitNotes = habits[currentHabit].notes || {};
       const cells = document.querySelectorAll('.cell:not(.empty)');
       
+      // First clear all note indicators
+      document.querySelectorAll('.note-indicator').forEach(indicator => {
+        indicator.remove();
+      });
+      
+      // Then clear note text from tooltips
+      document.querySelectorAll('.tooltip .note-text').forEach(noteText => {
+        noteText.remove();
+      });
+      
       cells.forEach((cell) => {
         const index = parseInt(cell.dataset.index);
         const cellMonth = parseInt(cell.dataset.month);
@@ -668,7 +629,6 @@
           
           // Remember if the cell had special classes
           const wasToday = cell.classList.contains('today');
-          const wasYesterday = cell.classList.contains('yesterday');
           const wasPast = cell.classList.contains('past');
           const wasFuture = cell.classList.contains('future');
           
@@ -680,46 +640,42 @@
             // Then add back any special status classes
             if (wasToday) {
               cell.classList.add('today');
-            } else if (wasYesterday) {
-              cell.classList.add('yesterday');
             } else if (wasFuture) {
               cell.classList.add('future');
-              // Reduce the opacity override for filled future cells
+              // Reduce the opacity for filled future cells
               cell.style.opacity = '0.85';
+            } else if (wasPast) {
+              cell.classList.add('past');
+              // Keep full opacity for filled past cells
+              cell.style.opacity = '1';
             }
           } else {
             // For unfilled cells, restore the original classes
             cell.className = 'cell';
             if (wasToday) cell.classList.add('today');
-            if (wasYesterday) cell.classList.add('yesterday');
             if (wasPast) cell.classList.add('past');
             if (wasFuture) cell.classList.add('future');
           }
           
-          // Add note indicators and set up listeners as before
-          if (habitNotes[index]) {
+          // Add note indicators only for the current habit
+          if (habitNotes && habitNotes[index]) {
             // Add note indicator
-            if (!cell.querySelector('.note-indicator')) {
-              const indicator = document.createElement('div');
-              indicator.className = 'note-indicator';
-              cell.appendChild(indicator);
-            }
+            const indicator = document.createElement('div');
+            indicator.className = 'note-indicator';
+            cell.appendChild(indicator);
             
             // Update tooltip
             const tooltip = cell.querySelector('.tooltip');
             if (tooltip) {
-              const noteElement = tooltip.querySelector('.note-text') || document.createElement('div');
+              const noteElement = document.createElement('div');
               noteElement.className = 'note-text';
               noteElement.textContent = habitNotes[index];
-              
-              if (!tooltip.querySelector('.note-text')) {
-                tooltip.appendChild(noteElement);
-              }
+              tooltip.appendChild(noteElement);
             }
           }
           
-          // Setup event listeners for today and yesterday cells
-          if (cell.classList.contains('today') || cell.classList.contains('yesterday')) {
+          // Setup event listeners for today's cell
+          if (wasToday) {
             setupCellEventListeners(cell);
           }
         }
@@ -829,7 +785,7 @@
 
     // Add long press detection for notes
     function setupCellEventListeners(cell) {
-      if (cell.classList.contains('today') || cell.classList.contains('yesterday')) {
+      if (cell.classList.contains('today')) {
         let longPressTimer;
         
         cell.addEventListener('mousedown', function() {
