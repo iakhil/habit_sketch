@@ -394,10 +394,33 @@
       right: 8px;
       bottom: 8px;
     }
+    /* Style for yesterday's date */
+    .cell.yesterday {
+      border: 2px solid #f0ad4e; /* Orange border for yesterday */
+      box-shadow: 0 0 15px rgba(240, 173, 78, 0.4); /* Orange glow */
+      position: relative;
+      z-index: 2;
+    }
+    .cell.yesterday .day-number {
+      font-weight: bold;
+      color: #fff;
+    }
+    /* Add an indicator for yesterday */
+    .cell.yesterday::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 10px;
+      height: 10px;
+      background-color: #f0ad4e; /* Orange indicator */
+      border-radius: 50%;
+    }
   </style>
 </head>
 <body>
-  <h1>HabitSketch</h1>
+  <h1>HABITSKETCH</h1>
+  
   <div id="controls">
     <div class="selector-group">
       <select id="monthSelector">
@@ -417,16 +440,19 @@
       <select id="habitSelector">
         <option value="">Select a Habit</option>
       </select>
-      <button id="deleteHabit">Delete Habbit</button>
+      <button id="deleteHabit">Delete Habit</button>
     </div>
     <button id="addHabit">Add New Habit</button>
   </div>
+  
   <div id="grid"></div>
+  
   <div id="habitInput">
-    <label for="newHabit">Enter New Habit:</label>
-    <input type="text" id="newHabit" placeholder="E.g., Exercise">
+    <label for="newHabit">New Habit Name</label>
+    <input type="text" id="newHabit" placeholder="Enter habit name...">
     <button id="saveNewHabit">Save</button>
   </div>
+  
   <div id="noteInput">
     <h3 style="margin-top: 0;">Add Note</h3>
     <textarea id="noteText" maxlength="100" placeholder="Add a note for this day (max 100 characters)..."></textarea>
@@ -436,6 +462,7 @@
       <button id="saveNote">Save Note</button>
     </div>
   </div>
+
   <script>
     const grid = document.getElementById('grid');
     const habitSelector = document.getElementById('habitSelector');
@@ -502,6 +529,13 @@
       const todayMonth = today.getMonth();
       const todayDay = today.getDate();
       
+      // Calculate yesterday's date
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const yesterdayYear = yesterday.getFullYear();
+      const yesterdayMonth = yesterday.getMonth();
+      const yesterdayDay = yesterday.getDate();
+      
       // Create cells for each day
       for (let i = 0; i < totalCells; i++) {
         const day = i + 1;
@@ -520,15 +554,28 @@
           // Check if the date is in the future or past
           const isFutureDate = cellDate > today;
           
-          // Check if the date is today (only editable date)
+          // Check if the date is today or yesterday (both editable)
           const isToday = (
             cellDate.getFullYear() === todayYear && 
             cellDate.getMonth() === todayMonth && 
             cellDate.getDate() === todayDay
           );
           
-          if (!isToday) {
-            // If it's not today, make it non-editable
+          const isYesterday = (
+            cellDate.getFullYear() === yesterdayYear && 
+            cellDate.getMonth() === yesterdayMonth && 
+            cellDate.getDate() === yesterdayDay
+          );
+          
+          // Allow editing for both today and yesterday
+          if (isToday || isYesterday) {
+            cell.classList.add(isToday ? 'today' : 'yesterday');
+            cell.addEventListener('click', () => toggleCell(cell));
+            
+            // Setup event listeners for notes
+            setupCellEventListeners(cell);
+          } else {
+            // If it's not today or yesterday, make it non-editable
             cell.classList.add(isFutureDate ? 'future' : 'past');
             cell.style.cursor = 'not-allowed';
             
@@ -536,19 +583,20 @@
             if (!isFutureDate) {
               cell.style.opacity = '0.9';
             }
-          } else {
-            cell.classList.add('today');
-            cell.addEventListener('click', () => toggleCell(cell));
           }
           
-          // Add day number to tooltip and as visible number in cell
+          // Update tooltip to include "Yesterday" label
           const tooltip = document.createElement('span');
           tooltip.className = 'tooltip';
           tooltip.textContent = `${months[currentMonth]} ${day}, 2025`;
           
           if (isFutureDate) {
             tooltip.textContent += ' (Future date)';
-          } else if (!isToday) {
+          } else if (isToday) {
+            tooltip.textContent += ' (Today)';
+          } else if (isYesterday) {
+            tooltip.textContent += ' (Yesterday)';
+          } else {
             tooltip.textContent += ' (Past date)';
           }
           
@@ -576,22 +624,30 @@
 
     function toggleCell(cell) {
       if (!currentHabit) return;
-      if (cell.classList.contains('future') || cell.classList.contains('past')) return;
+      if (cell.classList.contains('future') || (cell.classList.contains('past') && 
+          !cell.classList.contains('yesterday'))) return;
 
-      // If it's today's date and we have a habit selected, we'll handle notes on long press
-      if (cell.classList.contains('today')) {
-        // For regular click, toggle completion as usual
-        const intensity = parseInt(cell.dataset.intensity);
-        const newIntensity = intensity === 1 ? 0 : 1;
-        cell.dataset.intensity = newIntensity;
-        cell.className = newIntensity ? `cell filled-${newIntensity}` : 'cell';
+      // Toggle cell for today or yesterday
+      const intensity = parseInt(cell.dataset.intensity);
+      const newIntensity = intensity === 1 ? 0 : 1;
+      cell.dataset.intensity = newIntensity;
+      
+      // Keep the appropriate class
+      const wasToday = cell.classList.contains('today');
+      const wasYesterday = cell.classList.contains('yesterday');
+      
+      cell.className = newIntensity ? `cell filled-${newIntensity}` : 'cell';
+      
+      if (wasToday) {
         cell.classList.add('today');
-
-        // Save to habits object
-        const index = parseInt(cell.dataset.index);
-        habits[currentHabit].gridData[index] = newIntensity;
-        saveHabitsToLocalStorage();
+      } else if (wasYesterday) {
+        cell.classList.add('yesterday');
       }
+
+      // Save to habits object
+      const index = parseInt(cell.dataset.index);
+      habits[currentHabit].gridData[index] = newIntensity;
+      saveHabitsToLocalStorage();
     }
 
     function populateGrid() {
@@ -612,6 +668,7 @@
           
           // Remember if the cell had special classes
           const wasToday = cell.classList.contains('today');
+          const wasYesterday = cell.classList.contains('yesterday');
           const wasPast = cell.classList.contains('past');
           const wasFuture = cell.classList.contains('future');
           
@@ -620,22 +677,21 @@
             // For filled cells (completed habits), apply filled style first
             cell.className = `cell filled-${intensity}`;
             
-            // Then add back any special status classes but make sure filled styling takes precedence
+            // Then add back any special status classes
             if (wasToday) {
               cell.classList.add('today');
+            } else if (wasYesterday) {
+              cell.classList.add('yesterday');
             } else if (wasFuture) {
               cell.classList.add('future');
               // Reduce the opacity override for filled future cells
               cell.style.opacity = '0.85';
-            } else if (wasPast) {
-              cell.classList.add('past');
-              // Remove opacity override for filled past cells to show full color
-              cell.style.opacity = '1';
             }
           } else {
             // For unfilled cells, restore the original classes
             cell.className = 'cell';
             if (wasToday) cell.classList.add('today');
+            if (wasYesterday) cell.classList.add('yesterday');
             if (wasPast) cell.classList.add('past');
             if (wasFuture) cell.classList.add('future');
           }
@@ -662,8 +718,8 @@
             }
           }
           
-          // Setup event listeners for today's cell
-          if (cell.classList.contains('today')) {
+          // Setup event listeners for today and yesterday cells
+          if (cell.classList.contains('today') || cell.classList.contains('yesterday')) {
             setupCellEventListeners(cell);
           }
         }
@@ -773,7 +829,7 @@
 
     // Add long press detection for notes
     function setupCellEventListeners(cell) {
-      if (cell.classList.contains('today')) {
+      if (cell.classList.contains('today') || cell.classList.contains('yesterday')) {
         let longPressTimer;
         
         cell.addEventListener('mousedown', function() {
