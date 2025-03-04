@@ -16,9 +16,9 @@
       align-items: center;
       background-color: #121212;
       color: #ffffff;
-      height: 100vh;
+      min-height: 100vh;
       box-sizing: border-box;
-      overflow: hidden;
+      overflow-y: auto;
     }
     h1 {
       color: #ffffff;
@@ -76,31 +76,37 @@
     #grid {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin: 1rem auto;
+      align-items: center;
       justify-content: center;
-      position: relative;
+      width: 100%;
+      margin: 1rem auto;
     }
     .month-container {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 15px;
+      width: auto;
     }
     .month-label {
-      width: 120px;
+      width: 100px;
       text-align: right;
       color: rgba(255, 255, 255, 0.9);
       font-size: 1.4rem;
       font-weight: 300;
-      padding-right: 30px;
     }
     .month-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      grid-gap: 8px;
-      width: 25vw;
-      max-width: 500px;
-      aspect-ratio: 5/7;
+      grid-template-columns: repeat(7, 1fr);
+      grid-gap: 12px;
+      width: 100%;
+      max-width: 800px;
+    }
+    .day-header {
+      text-align: center;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      padding: 8px 0;
+      font-weight: 500;
     }
     .cell {
       width: auto;
@@ -113,6 +119,7 @@
       position: relative;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.1);
+      min-width: 50px;
     }
     .cell::before {
       content: '';
@@ -161,11 +168,11 @@
       position: absolute;
       background: rgba(0, 0, 0, 0.8);
       color: white;
-      padding: 8px 16px;
+      padding: 6px 12px;
       border-radius: 8px;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       visibility: hidden;
-      transform: translate(-50%, -130%);
+      transform: translate(-50%, -120%);
       white-space: nowrap;
       z-index: 1000;
       backdrop-filter: blur(5px);
@@ -251,10 +258,10 @@
     .cell.today::after {
       content: '';
       position: absolute;
-      top: 10px;
-      left: 10px;
-      width: 10px;
-      height: 10px;
+      top: 8px;
+      left: 8px;
+      width: 8px;
+      height: 8px;
       background-color: #5ccc60;
       border-radius: 50%;
     }
@@ -353,8 +360,8 @@
       position: absolute;
       bottom: 5px;
       right: 5px;
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background-color: #ffcc00;
       border-radius: 50%;
       z-index: 3;
@@ -389,10 +396,10 @@
     /* Style for filled cells that also have notes */
     .cell.filled-1 .note-indicator {
       background-color: #ffcc00;
-      width: 10px;
-      height: 10px;
-      right: 8px;
-      bottom: 8px;
+      width: 8px;
+      height: 8px;
+      right: 6px;
+      bottom: 6px;
     }
     /* Style for yesterday's date */
     .cell.yesterday {
@@ -490,87 +497,95 @@
       // Calculate days in month for 2025
       const daysInMonth = new Date(2025, currentMonth + 1, 0).getDate();
       
+      // Get the first day of the month (0 = Sunday, 1 = Monday, etc.)
+      const firstDayOfMonth = new Date(2025, currentMonth, 1).getDay();
+      
       // Calculate starting index for this month
       let startIndex = 0;
       for (let m = 0; m < currentMonth; m++) {
         startIndex += new Date(2025, m + 1, 0).getDate();
       }
       
-      // Calculate number of rows needed
-      const numRows = Math.ceil(31 / 5);
-      const totalCells = numRows * 5;
+      // Add day headers (Sun, Mon, Tue, etc.)
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayNames.forEach(day => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'day-header';
+        dayHeader.textContent = day;
+        monthGrid.appendChild(dayHeader);
+      });
+      
+      // Add empty cells for days before the first day of the month
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'cell empty';
+        monthGrid.appendChild(emptyCell);
+      }
       
       // Get today's date for comparison
       const today = new Date();
-      const todayYear = today.getFullYear();
-      const todayMonth = today.getMonth();
-      const todayDay = today.getDate();
       
-      // Create cells for each day
-      for (let i = 0; i < totalCells; i++) {
-        const day = i + 1;
+      // For demo purposes, we need to handle the 2025 calendar differently
+      // Since we're displaying 2025 but it's not 2025 yet, all dates should be future dates
+      const currentYear = today.getFullYear();
+      const isCurrentYear2025 = currentYear === 2025;
+      
+      // Create cells for each day of the month
+      for (let day = 1; day <= daysInMonth; day++) {
         const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.intensity = 0;
+        cell.dataset.index = startIndex + (day - 1);
+        cell.dataset.day = day;
+        cell.dataset.month = currentMonth;
         
-        if (day <= daysInMonth) {
-          cell.className = 'cell';
-          cell.dataset.intensity = 0;
-          cell.dataset.index = startIndex + (day - 1);
-          cell.dataset.day = day;
-          cell.dataset.month = currentMonth;
-          
-          // Calculate the date for this cell
-          const cellDate = new Date(2025, currentMonth, day);
-          
-          // Check if the date is in the future or past
-          const isFutureDate = cellDate > today;
-          
-          // Check if the date is today (only editable date)
-          const isToday = (
-            cellDate.getFullYear() === todayYear && 
-            cellDate.getMonth() === todayMonth && 
-            cellDate.getDate() === todayDay
-          );
-          
-          if (isToday) {
-            cell.classList.add('today');
-            cell.addEventListener('click', () => toggleCell(cell));
-            
-            // Setup event listeners for notes
-            setupCellEventListeners(cell);
-          } else {
-            // If it's not today, make it non-editable
-            cell.classList.add(isFutureDate ? 'future' : 'past');
-            cell.style.cursor = 'not-allowed';
-            
-            // Style past dates differently from future dates
-            if (!isFutureDate) {
-              cell.style.opacity = '0.9';
-            }
-          }
-          
-          // Add tooltip with date info
-          const tooltip = document.createElement('span');
-          tooltip.className = 'tooltip';
-          tooltip.textContent = `${months[currentMonth]} ${day}, 2025`;
-          
-          if (isFutureDate) {
-            tooltip.textContent += ' (Future date)';
-          } else if (isToday) {
-            tooltip.textContent += ' (Today)';
-          } else {
-            tooltip.textContent += ' (Past date)';
-          }
-          
-          cell.appendChild(tooltip);
-          
-          // Add day number inside cell
-          const dayNumber = document.createElement('span');
-          dayNumber.className = 'day-number';
-          dayNumber.textContent = day;
-          cell.appendChild(dayNumber);
+        // Calculate the date for this cell
+        const cellDate = new Date(2025, currentMonth, day);
+        
+        // If it's not 2025 yet, all dates are future dates
+        const isFutureDate = !isCurrentYear2025 || cellDate > today;
+        
+        // A date is only "today" if we're in 2025 and the date matches today
+        const isToday = (
+          isCurrentYear2025 &&
+          cellDate.getFullYear() === today.getFullYear() && 
+          cellDate.getMonth() === today.getMonth() && 
+          cellDate.getDate() === today.getDate()
+        );
+        
+        if (isToday) {
+          cell.classList.add('today');
+          cell.addEventListener('click', () => toggleCell(cell));
+          setupCellEventListeners(cell);
         } else {
-          cell.className = 'cell empty';
+          cell.classList.add(isFutureDate ? 'future' : 'past');
+          cell.style.cursor = 'not-allowed';
+          
+          if (!isFutureDate) {
+            cell.style.opacity = '0.9';
+          }
         }
+        
+        // Add tooltip with date info
+        const tooltip = document.createElement('span');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = `${months[currentMonth]} ${day}, 2025`;
+        
+        if (isFutureDate) {
+          tooltip.textContent += ' (Future date)';
+        } else if (isToday) {
+          tooltip.textContent += ' (Today)';
+        } else {
+          tooltip.textContent += ' (Past date)';
+        }
+        
+        cell.appendChild(tooltip);
+        
+        // Add day number inside cell
+        const dayNumber = document.createElement('span');
+        dayNumber.className = 'day-number';
+        dayNumber.textContent = day;
+        cell.appendChild(dayNumber);
         
         monthGrid.appendChild(cell);
       }
@@ -618,43 +633,47 @@
         noteText.remove();
       });
       
+      // Get today's date for comparison
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const isCurrentYear2025 = currentYear === 2025;
+      
       cells.forEach((cell) => {
         const index = parseInt(cell.dataset.index);
         const cellMonth = parseInt(cell.dataset.month);
+        const day = parseInt(cell.dataset.day);
         
         // Only update cells for current month
         if (cellMonth === currentMonth) {
           const intensity = habitData[index] || 0;
           cell.dataset.intensity = intensity;
           
+          // Calculate the date for this cell
+          const cellDate = new Date(2025, cellMonth, day);
+          
+          // If it's not 2025 yet, all dates are future dates
+          const isFutureDate = !isCurrentYear2025 || cellDate > today;
+          
           // Remember if the cell had special classes
           const wasToday = cell.classList.contains('today');
-          const wasPast = cell.classList.contains('past');
-          const wasFuture = cell.classList.contains('future');
           
           // Reset base class
-          if (intensity > 0) {
-            // For filled cells (completed habits), apply filled style first
+          if (intensity > 0 && !isFutureDate) {
+            // Only show filled style for non-future dates
             cell.className = `cell filled-${intensity}`;
             
             // Then add back any special status classes
             if (wasToday) {
               cell.classList.add('today');
-            } else if (wasFuture) {
-              cell.classList.add('future');
-              // Reduce the opacity for filled future cells
-              cell.style.opacity = '0.85';
-            } else if (wasPast) {
+            } else {
               cell.classList.add('past');
-              // Keep full opacity for filled past cells
-              cell.style.opacity = '1';
             }
           } else {
-            // For unfilled cells, restore the original classes
+            // For unfilled cells or future dates, restore the original classes
             cell.className = 'cell';
             if (wasToday) cell.classList.add('today');
-            if (wasPast) cell.classList.add('past');
-            if (wasFuture) cell.classList.add('future');
+            else if (isFutureDate) cell.classList.add('future');
+            else cell.classList.add('past');
           }
           
           // Add note indicators only for the current habit
@@ -672,11 +691,6 @@
               noteElement.textContent = habitNotes[index];
               tooltip.appendChild(noteElement);
             }
-          }
-          
-          // Setup event listeners for today's cell
-          if (wasToday) {
-            setupCellEventListeners(cell);
           }
         }
       });
