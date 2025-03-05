@@ -463,10 +463,9 @@
     const charCountSpan = document.getElementById('charCount');
     let currentCell = null;
 
-    const startDate = new Date('2025-01-01');
     let habits = JSON.parse(localStorage.getItem('habits')) || {};
     let currentHabit = null;
-    let currentMonth = 0;
+    let currentMonth = new Date().getMonth(); // Get current month (0-11)
 
     const months = [
       'January', 'February', 'March', 'April',
@@ -781,13 +780,28 @@
     deleteHabitBtn.addEventListener('click', deleteCurrentHabit);
 
     // Initialize with current month
-    createGrid();
-    loadHabits();
-    if (habitSelector.options.length > 1) {
-      habitSelector.value = habitSelector.options[1].value;
-      currentHabit = habitSelector.value;
-      populateGrid();
+    function initializeApp() {
+      // Set the month selector to current month
+      monthSelector.value = currentMonth.toString();
+      
+      // Create grid with current month
+      createGrid();
+      
+      // Load habits
+      loadHabits();
+      
+      // Select first habit if available
+      if (habitSelector.options.length > 1) {
+        habitSelector.value = habitSelector.options[1].value;
+        currentHabit = habitSelector.value;
+        populateGrid();
+      }
+      
+      // Show/hide delete button based on selection
+      deleteHabitBtn.style.display = currentHabit ? 'block' : 'none';
     }
+
+    initializeApp();
 
     // Add event listeners for the note input
     noteText.addEventListener('input', updateCharCount);
