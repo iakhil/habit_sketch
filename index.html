@@ -506,6 +506,93 @@
         -webkit-overflow-scrolling: touch;
       }
     }
+    
+    /* Data backup & restore */
+    .data-controls {
+      display: flex;
+      gap: 15px;
+      margin-top: 1rem;
+    }
+    
+    #backupBtn, #restoreBtn {
+      background: linear-gradient(135deg, rgba(100, 100, 255, 0.1) 0%, rgba(140, 140, 255, 0.15) 100%);
+      border: 1px solid rgba(100, 100, 255, 0.2);
+      font-size: 0.9rem;
+      padding: 0.6rem 1rem;
+    }
+    
+    #backupInput {
+      display: none;
+    }
+    
+    #backupModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-content {
+      background: #1f1f1f;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 90%;
+      width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-content textarea {
+      width: 100%;
+      height: 150px;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: monospace;
+      margin: 1rem 0;
+      resize: none;
+    }
+    
+    .modal-content p {
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+    
+    .modal-buttons button {
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    
+    #closeModal {
+      background: #444;
+      color: white;
+    }
+    
+    #copyBackup {
+      background: #3498db;
+      color: white;
+    }
+    
+    #applyRestore {
+      background: #2ecc71;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -529,9 +616,13 @@
       <select id="habitSelector">
         <option value="">Select a Habit</option>
       </select>
-      <button id="deleteHabit">Delete Habbit</button>
+      <button id="deleteHabit">Delete Habit</button>
     </div>
     <button id="addHabit">Add New Habit</button>
+    <div class="data-controls">
+      <button id="backupBtn">Backup Data</button>
+      <button id="restoreBtn">Restore Data</button>
+    </div>
   </div>
   <div id="grid"></div>
   <div id="habitInput">
@@ -546,6 +637,28 @@
     <div class="note-buttons">
       <button id="cancelNote">Cancel</button>
       <button id="saveNote">Save Note</button>
+    </div>
+  </div>
+  <div id="backupModal">
+    <div class="modal-content">
+      <h3>Backup Your Habit Data</h3>
+      <p>Copy the text below and save it somewhere safe. You can use this to restore your habits later if needed.</p>
+      <textarea id="backupText" readonly></textarea>
+      <div class="modal-buttons">
+        <button id="closeModal">Close</button>
+        <button id="copyBackup">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+  <div id="restoreModal" class="restore-modal">
+    <div class="modal-content">
+      <h3>Restore Your Habit Data</h3>
+      <p>Paste your backup data below and click "Restore Data" to recover your habits.</p>
+      <textarea id="restoreText" placeholder="Paste your backup data here..."></textarea>
+      <div class="modal-buttons">
+        <button id="closeRestoreModal">Cancel</button>
+        <button id="applyRestore">Restore Data</button>
+      </div>
     </div>
   </div>
   <script>
@@ -564,7 +677,112 @@
     const charCountSpan = document.getElementById('charCount');
     let currentCell = null;
 
-    let habits = JSON.parse(localStorage.getItem('habits')) || {};
+    // More thorough data recovery - try additional formats and keys
+    let habits = {};
+    let dataRecovered = false;
+    
+    // Try to recover data from all possible storage locations and formats
+    function recoverData() {
+      // Check all localStorage keys for anything habit-related
+      console.log("Available localStorage keys:", Object.keys(localStorage));
+      
+      // 1. Try the standard 'habits' key
+      try {
+        const storedHabits = localStorage.getItem('habits');
+        if (storedHabits && storedHabits !== '{}') {
+          const parsedData = JSON.parse(storedHabits);
+          if (Object.keys(parsedData).length > 0) {
+            habits = parsedData;
+            console.log("Data recovered from 'habits' key");
+            dataRecovered = true;
+            return true;
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing 'habits' data:", e);
+      }
+      
+      // 2. Try alternate keys that might have been used
+      const alternateKeys = ['habitsData', 'habitSketch', 'habitData', 'userHabits'];
+      for (const key of alternateKeys) {
+        try {
+          const storedData = localStorage.getItem(key);
+          if (storedData && storedData !== '{}') {
+            const parsedData = JSON.parse(storedData);
+            if (Object.keys(parsedData).length > 0) {
+              habits = parsedData;
+              console.log(`Data recovered from '${key}' key`);
+              // Migrate to standard key
+              localStorage.setItem('habits', JSON.stringify(habits));
+              dataRecovered = true;
+              return true;
+            }
+          }
+        } catch (e) {
+          console.error(`Error parsing '${key}' data:`, e);
+        }
+      }
+      
+      // 3. Try to recover from any key containing "habit" in its name
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.toLowerCase().includes('habit')) {
+          try {
+            const storedData = localStorage.getItem(key);
+            if (storedData && storedData !== '{}') {
+              const parsedData = JSON.parse(storedData);
+              if (Object.keys(parsedData).length > 0) {
+                habits = parsedData;
+                console.log(`Data recovered from '${key}' key`);
+                // Migrate to standard key
+                localStorage.setItem('habits', JSON.stringify(habits));
+                dataRecovered = true;
+                return true;
+              }
+            }
+          } catch (e) {
+            console.error(`Error parsing '${key}' data:`, e);
+          }
+        }
+      }
+      
+      // 4. Check for any JSON-like strings in localStorage that might be habit data
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        try {
+          const storedData = localStorage.getItem(key);
+          if (storedData && storedData.startsWith('{') && storedData.includes('gridData')) {
+            const parsedData = JSON.parse(storedData);
+            if (parsedData && Object.keys(parsedData).length > 0) {
+              habits = parsedData;
+              console.log(`Potential habit data recovered from '${key}' key`);
+              // Migrate to standard key
+              localStorage.setItem('habits', JSON.stringify(habits));
+              dataRecovered = true;
+              return true;
+            }
+          }
+        } catch (e) {
+          // Ignore parsing errors for non-habit data
+        }
+      }
+      
+      return false;
+    }
+    
+    // Attempt to recover data
+    if (!recoverData()) {
+      console.log("No existing habits found, initializing with example");
+      habits = {
+        "Exercise": {
+          gridData: Array(365).fill(0),
+          notes: {}
+        }
+      };
+      // Save the example habit
+      localStorage.setItem('habits', JSON.stringify(habits));
+    }
+    
     let currentHabit = null;
     let currentMonth = new Date().getMonth(); // Get current month (0-11)
 
@@ -919,6 +1137,139 @@
       
       // Show/hide delete button based on selection
       deleteHabitBtn.style.display = currentHabit ? 'block' : 'none';
+      
+      // Set up backup/restore system
+      setupBackupSystem();
+    }
+    
+    // Set up backup and restore functionality
+    function setupBackupSystem() {
+      const backupBtn = document.getElementById('backupBtn');
+      const restoreBtn = document.getElementById('restoreBtn');
+      const backupModal = document.getElementById('backupModal');
+      const restoreModal = document.getElementById('restoreModal');
+      const backupText = document.getElementById('backupText');
+      const restoreText = document.getElementById('restoreText');
+      const closeModal = document.getElementById('closeModal');
+      const closeRestoreModal = document.getElementById('closeRestoreModal');
+      const copyBackup = document.getElementById('copyBackup');
+      const applyRestore = document.getElementById('applyRestore');
+      
+      // Show backup modal with data
+      backupBtn.addEventListener('click', () => {
+        // Create backup data
+        const backupData = {
+          version: 1,
+          timestamp: new Date().toISOString(),
+          habits: habits
+        };
+        
+        // Display backup data
+        backupText.value = JSON.stringify(backupData);
+        
+        // Show modal
+        backupModal.style.display = 'flex';
+      });
+      
+      // Close backup modal
+      closeModal.addEventListener('click', () => {
+        backupModal.style.display = 'none';
+      });
+      
+      // Copy backup data to clipboard
+      copyBackup.addEventListener('click', () => {
+        backupText.select();
+        document.execCommand('copy');
+        alert('Backup data copied to clipboard!');
+      });
+      
+      // Show restore modal
+      restoreBtn.addEventListener('click', () => {
+        restoreModal.style.display = 'flex';
+      });
+      
+      // Close restore modal
+      closeRestoreModal.addEventListener('click', () => {
+        restoreModal.style.display = 'none';
+      });
+      
+      // Apply restoration from backup data
+      applyRestore.addEventListener('click', () => {
+        try {
+          const backupData = JSON.parse(restoreText.value);
+          
+          // Check if this is valid backup data
+          if (backupData && backupData.habits) {
+            // Restore the data
+            habits = backupData.habits;
+            
+            // Save to localStorage
+            saveHabitsToLocalStorage();
+            
+            // Close modal
+            restoreModal.style.display = 'none';
+            
+            // Reload UI
+            loadHabits();
+            if (habitSelector.options.length > 1) {
+              habitSelector.value = habitSelector.options[1].value;
+              currentHabit = habitSelector.value;
+            } else {
+              currentHabit = null;
+            }
+            
+            // Update grid
+            createGrid();
+            
+            alert('Your habit data has been restored successfully!');
+          } else {
+            alert('Invalid backup data. Please check the format and try again.');
+          }
+        } catch (e) {
+          console.error('Error restoring data:', e);
+          alert('Error restoring data. Please check your backup and try again.');
+        }
+      });
+      
+      // Close modals when clicking outside
+      window.addEventListener('click', (e) => {
+        if (e.target === backupModal) {
+          backupModal.style.display = 'none';
+        }
+        if (e.target === restoreModal) {
+          restoreModal.style.display = 'none';
+        }
+      });
+      
+      // Create automatic backup every time data is saved
+      const originalSaveFunction = saveHabitsToLocalStorage;
+      saveHabitsToLocalStorage = function() {
+        // Call original function
+        originalSaveFunction();
+        
+        // Also save a backup copy with timestamp
+        const backupKey = 'habitSketch_backup_' + new Date().toISOString().split('T')[0];
+        try {
+          localStorage.setItem(backupKey, JSON.stringify(habits));
+          
+          // Limit to 10 backups to avoid filling localStorage
+          const backupKeys = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('habitSketch_backup_')) {
+              backupKeys.push(key);
+            }
+          }
+          
+          // Sort and remove oldest if more than 10
+          if (backupKeys.length > 10) {
+            backupKeys.sort();
+            localStorage.removeItem(backupKeys[0]); // Remove oldest
+          }
+        } catch (e) {
+          console.warn('Failed to create automatic backup:', e);
+        }
+      };
     }
 
     initializeApp();
