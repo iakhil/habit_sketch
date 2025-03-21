@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="icon" type="image/x-icon" href="frontend/favicon.png">
   <title>HabitSketch</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
@@ -405,6 +405,107 @@
     .cell.yesterday {
       display: none; /* This will be removed */
     }
+    /* Mobile responsiveness improvements */
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+      }
+      
+      .selector-group {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+      }
+      
+      #controls select, #controls button {
+        width: 100%;
+        min-width: unset;
+      }
+      
+      .month-container {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+      }
+      
+      .month-label {
+        width: 100%;
+        text-align: center;
+        font-size: 1.2rem;
+      }
+      
+      .month-grid {
+        grid-gap: 8px;
+      }
+      
+      .day-header {
+        font-size: 0.8rem;
+      }
+      
+      .cell {
+        min-width: 30px;
+      }
+      
+      .day-number {
+        font-size: 1rem;
+      }
+      
+      #habitInput {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        right: auto;
+        width: 90%;
+        max-width: 300px;
+      }
+      
+      #noteInput {
+        width: 90%;
+        max-width: 300px;
+      }
+      
+      .tooltip {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+      }
+    }
+    /* Improve touch targets for mobile */
+    .cell:hover {
+      transform: none;
+    }
+    @media (hover: hover) {
+      .cell:hover {
+        transform: translateY(-2px);
+      }
+    }
+    /* Add meta tag for proper mobile scaling */
+    /* Tap feedback animation */
+    @keyframes tapFeedback {
+      0% { opacity: 0.5; }
+      100% { opacity: 0; }
+    }
+
+    .tap-feedback {
+      animation: tapFeedback 300ms ease-out forwards;
+    }
+
+    /* Fix for mobile tooltips */
+    @media (pointer: coarse) {
+      .tooltip {
+        transform: translate(-50%, -150%);
+      }
+      
+      /* Better scrolling behavior */
+      body {
+        -webkit-overflow-scrolling: touch;
+      }
+    }
   </style>
 </head>
 <body>
@@ -613,6 +714,25 @@
       const index = parseInt(cell.dataset.index);
       habits[currentHabit].gridData[index] = newIntensity;
       saveHabitsToLocalStorage();
+      
+      // Provide visual feedback for mobile users
+      const feedbackEffect = document.createElement('div');
+      feedbackEffect.className = 'tap-feedback';
+      feedbackEffect.style.position = 'absolute';
+      feedbackEffect.style.top = '0';
+      feedbackEffect.style.left = '0';
+      feedbackEffect.style.right = '0';
+      feedbackEffect.style.bottom = '0';
+      feedbackEffect.style.borderRadius = '12px';
+      feedbackEffect.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+      feedbackEffect.style.zIndex = '2';
+      feedbackEffect.style.pointerEvents = 'none';
+      
+      cell.appendChild(feedbackEffect);
+      
+      setTimeout(() => {
+        feedbackEffect.remove();
+      }, 300);
     }
 
     function populateGrid() {
@@ -815,7 +935,10 @@
     function setupCellEventListeners(cell) {
       if (cell.classList.contains('today')) {
         let longPressTimer;
+        let touchStartTime;
+        let isTouchDevice = 'ontouchstart' in window;
         
+        // Handle mouse events
         cell.addEventListener('mousedown', function() {
           longPressTimer = setTimeout(function() {
             showNoteInput(cell);
@@ -830,10 +953,37 @@
           clearTimeout(longPressTimer);
         });
         
-        // Add double click for mobile-friendly option
-        cell.addEventListener('dblclick', function() {
-          showNoteInput(cell);
+        // Handle touch events for mobile
+        cell.addEventListener('touchstart', function(e) {
+          touchStartTime = new Date().getTime();
+          longPressTimer = setTimeout(function() {
+            showNoteInput(cell);
+          }, 500);
         });
+        
+        cell.addEventListener('touchend', function(e) {
+          const touchEndTime = new Date().getTime();
+          const touchDuration = touchEndTime - touchStartTime;
+          
+          clearTimeout(longPressTimer);
+          
+          // Prevent double-tap zoom on iOS
+          if (touchDuration < 300) {
+            e.preventDefault();
+            toggleCell(cell);
+          }
+        });
+        
+        cell.addEventListener('touchmove', function() {
+          clearTimeout(longPressTimer);
+        });
+        
+        // Double click for desktop (keep it for non-touch devices)
+        if (!isTouchDevice) {
+          cell.addEventListener('dblclick', function() {
+            showNoteInput(cell);
+          });
+        }
       }
     }
 
